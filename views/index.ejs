@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link rel="stylesheet" href="/stylesheets/style.css">
+</head>
+<body>
+
+    <div class="content">
+        <div class="header">
+            <div class="buttons">
+                <div class="item_button">
+                    <label for="upload_file_node" id="upload_foto" class="upload_excel_file">
+                        <input type="file" id="upload_file_node" id="file" name="file" accept="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+                        Начать парсинг
+                    </label>
+                </div>
+                <div class="item_button"><button id="parsing_stop" disabled>Остановить парсинг</button></div>
+                <div class="item_button"><button id="download_file" disabled>Скачать файл</button></div>
+            </div>
+            <div class="status">
+                <p>Парсинг не начат</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="/javascripts/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/javascripts/main.js"></script>
+</body>
+</html>
