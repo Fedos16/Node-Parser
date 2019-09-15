@@ -34,7 +34,8 @@ $(document).ready(() => {
     });
 
 
-    socket.on('parsing status', msg => {
+    socket
+    .on('parsing status', msg => {
 
         $('.status p').text(msg);
         
@@ -47,6 +48,19 @@ $(document).ready(() => {
             $('#parsing_stop').attr('disabled', 'disabled');
             $('#download_file').removeAttr('disabled');
         }
+    })
+    .on('parsing data', data => {
+        let colRow = $('#DataTable tbody tr').length+1;
+
+        $('#DataTable tbody').append(`
+            <tr>
+                <td>${colRow}</td>
+                <td>${data.Name}</td>
+                <td>${data.Mediana}</td>
+                <td>${data.Avg}</td>
+            </tr>
+        `)
+
     });
 
     $(document).delegate('#parsing_stop', 'click', (e) => {

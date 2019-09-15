@@ -104,6 +104,7 @@ io.on('connection', socket => {
 
       let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
       io.emit('parsing status', 'Начинаем парсить данные');
+      let arrInput = ['//*[@id="header-search"]'];
 
       try {
         await driver.get('https://market.yandex.ru/');
@@ -113,25 +114,42 @@ io.on('connection', socket => {
         let col = 1;
         for (const item of arr) {
           let start = new Date();
+          let dataRow = {};
           try {
-            let inputForm = await driver.findElement(By.xpath('//*[@id="market-search"]/span/input'));
+            let inputForm = await driver.findElement(By.xpath('//*[@id="header-search"]'));
             await inputForm.clear();
             await inputForm.sendKeys(item+'\n');
+            await driver.findElement(By.xpath('/html/body/div[1]/div[5]/div[1]/div[2]/div[2]/div/span/label[1]/input')).click();
+
+            driver.sleep(1000);
 
             let arrPrice = [];
             for (let i=1; i < 11; i++) {
-              let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[6]/div[1]/div[1]/div/div/a/div`)).getText();
-              let price = String(pre_price).replace(' ₽', '');
-              arrPrice.push(Number(price));
+              try {
+                let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[6]/div[1]/div[1]/div/div/a/div`)).getText();
+                let price = String(pre_price).replace(' ₽', '');
+                arrPrice.push(Number(price));
+              } catch (e) {
+                let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[5]/div[1]/div[1]/div/div/a/div`)).getText();
+                let price = String(pre_price).replace(' ₽', '');
+                arrPrice.push(Number(price));
+              }
             }
 
+            let mdeiana = Number(calcMedian(arrPrice)).toFixed(0);
+            let avg = Number(calcGrades(arrPrice)).toFixed(0);
+
             arrContent[item] = {
-              Mediana: Number(calcMedian(arrPrice)).toFixed(0),
-              Avg: Number(calcGrades(arrPrice)).toFixed(0),
+              Mediana: mdeiana,
+              Avg: avg,
             }
+
+            dataRow = {Name: item, Mediana: mdeiana, Avg: avg};
+
           } catch(e1) {
             console.log(e1);
-            continue;
+            console.log(item);
+            dataRow = {Name: item, Mediana: 'Ошибка', Avg: 'Ошибка'};
           }
 
           
@@ -139,12 +157,13 @@ io.on('connection', socket => {
           let minute = Number((finish-start)/60000*(arr.length-col)).toFixed(2);
           let second = Number((finish-start)/1000*(arr.length-col)).toFixed(2)
           io.emit('parsing status', `Обработано ${col} из ${arr.length}. Осталось, примерно: ${second} сек. или ${minute} мин.`);
+          io.emit('parsing data', dataRow);
           col ++;
         }
 
         await SetExcel(arrContent);
         
-        driver.quit();
+        //driver.quit();
         io.emit('parsing status', 'Парсинг завершен');
       } catch (e) {
         console.log(e);

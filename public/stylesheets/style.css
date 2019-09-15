@@ -94,3 +94,9 @@ table tbody td {
 table thead th:first-child, table tbody td:first-child {
     text-align: left;
 }
+
+.data {
+    width: 90%;
+    margin: 10px auto;
+    height: auto;
+}
