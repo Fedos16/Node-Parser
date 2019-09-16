@@ -159,11 +159,15 @@ io.on('connection', socket => {
           io.emit('parsing status', `Обработано ${col} из ${arr.length}. Осталось, примерно: ${second} сек. или ${minute} мин.`);
           io.emit('parsing data', dataRow);
           col ++;
+
+          if (!status_parsing) {
+            break;
+          }
         }
 
         await SetExcel(arrContent);
         
-        //driver.quit();
+        driver.quit();
         io.emit('parsing status', 'Парсинг завершен');
       } catch (e) {
         console.log(e);
