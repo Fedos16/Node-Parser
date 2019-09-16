@@ -90,9 +90,9 @@ io.on('connection', socket => {
       let worksheet = workbook.getWorksheet(data.worksheets[0].name); 
 
       let options = new chrome.Options();
-      /* options.addArguments("--headless");
+      options.addArguments("--headless");
       options.addArguments("--disable-gpu");
-      options.addArguments("--no-sandbox"); */
+      options.addArguments("--no-sandbox");
 
       let arr = [];
 
