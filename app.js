@@ -97,14 +97,14 @@ io.on('connection', socket => {
       let arr = [];
 
       worksheet.eachRow({ includeEmpty: false }, async function(row, rowNumber) {
-          if (row.values[3] && rowNumber > 1) {
-            arr.push(row.values[3]);
+          if (row.values[1] && rowNumber > 1) {
+            arr.push(row.values[1]);
           }
       });
 
       let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
       io.emit('parsing status', 'Начинаем парсить данные');
-      let arrInput = ['//*[@id="header-search"]'];
+      let arrInput = ['//*[@id="header-search"]', '/html/body/div[1]/div/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'];
 
       try {
         await driver.get('https://market.yandex.ru/');
