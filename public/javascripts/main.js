@@ -22,6 +22,7 @@ $(document).ready(() => {
                 $('#upload_foto').addClass('cl_disabled');
                 $('#parsing_stop').removeAttr('disabled');
                 $('#upload_file_node').val("");
+                $('#DataTable tbody').html('');
                 socket.emit('parsing', {command: 'begin', path: data.path});
             } else {
                 console.log(data);
@@ -56,8 +57,8 @@ $(document).ready(() => {
             <tr>
                 <td>${colRow}</td>
                 <td>${data.Name}</td>
-                <td>${data.Mediana}</td>
                 <td>${data.Avg}</td>
+                <td>${data.Mediana}</td>
             </tr>
         `)
 

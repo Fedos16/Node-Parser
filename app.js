@@ -38,7 +38,7 @@ var calcMedian = (ar1) => {
   if (ar1.length % 2) {
     return ar1[half];
   } else {
-    return (ar1[half] + ar1[half] + 1) / 2.0;
+    return (ar1[half] + ar1[half] + 1) / 2;
   }
 }
 var calcGrades = (grades) => {
@@ -47,6 +47,7 @@ var calcGrades = (grades) => {
       total += grades[i];
   }
   let avg = total / grades.length;
+  //console.log(grades);
   return avg;
 }
 var SetExcel = (data) => {
@@ -116,23 +117,49 @@ io.on('connection', socket => {
           let start = new Date();
           let dataRow = {};
           try {
-            let inputForm = await driver.findElement(By.xpath('//*[@id="header-search"]'));
-            await inputForm.clear();
-            await inputForm.sendKeys(item+'\n');
-            await driver.findElement(By.xpath('/html/body/div[1]/div[5]/div[1]/div[2]/div[2]/div/span/label[1]/input')).click();
-
-            driver.sleep(1000);
+            try {
+              let inputForm = await driver.findElement(By.xpath('/html/body/div[1]/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
+              await inputForm.clear();
+              await inputForm.sendKeys(item+'\n');
+            } catch (e) {
+              let inputForm = await driver.findElement(By.xpath('/html/body/div[1]/div/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
+              await inputForm.clear();
+              await inputForm.sendKeys(item+'\n');
+            }
+            /* if (col == 1) {
+              await driver.findElement(By.xpath('/html/body/div[1]/div[5]/div[1]/div[2]/div[2]/div/span/label[1]/input')).click();
+              await driver.sleep(2000)
+            } */
+            
 
             let arrPrice = [];
+            let colProduct = await driver.findElements(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div`));
+            //console.log(`--- ${item} - ${colProduct.length}`);
             for (let i=1; i < 11; i++) {
+              
               try {
                 let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[6]/div[1]/div[1]/div/div/a/div`)).getText();
-                let price = String(pre_price).replace(' ₽', '');
+
+                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[6]/div[1]/div[1]/div/div/a/div
+                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[4]/div[1]/div/div/a/div
+                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[2]/div[4]/div[1]/div/div/a/div
+                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[4]/div[4]/div[1]/div/div/a/div
+                let price = String(pre_price).replace(/\s*₽*/g, '');
                 arrPrice.push(Number(price));
               } catch (e) {
-                let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[5]/div[1]/div[1]/div/div/a/div`)).getText();
-                let price = String(pre_price).replace(' ₽', '');
-                arrPrice.push(Number(price));
+                try {
+                  let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[5]/div[1]/div[1]/div/div/a/div`)).getText();
+                  let price = String(pre_price).replace(/\s*₽*/g, '');
+                  arrPrice.push(Number(price));
+                } catch(e) {
+                  try {
+                    let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[4]/div[1]/div/div/a/div`)).getText();
+                    let price = String(pre_price).replace(/\s*₽*/g, '');
+                    arrPrice.push(Number(price));
+                  } catch (e) {
+                    break;
+                  }
+                }
               }
             }
 
@@ -167,7 +194,7 @@ io.on('connection', socket => {
 
         await SetExcel(arrContent);
         
-        driver.quit();
+        //driver.quit();
         io.emit('parsing status', 'Парсинг завершен');
       } catch (e) {
         console.log(e);
