@@ -96,6 +96,8 @@ io.on('connection', socket => {
       try {
         await driver.get('https://market.yandex.ru/');
 
+        await driver.sleep(2000);
+
         let col = 1;
         for (const item of arr) {
           let start = new Date();
