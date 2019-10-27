@@ -1,6 +1,8 @@
 var express = require('express');
 var path = require('path');
 
+var fs = require('fs');
+
 const config = require('./config');
 var Excel = require('exceljs');
 
@@ -31,25 +33,8 @@ app.use('/api/events', routes.events);
 const {Builder, By, Key, until} = require('selenium-webdriver');
 const chrome = require('selenium-webdriver/chrome');
 
-var calcMedian = (ar1) => {
-  var half = Math.floor(ar1.length / 2);
-  ar1.sort(function(a, b) { return a - b;});
+let arrContent = {};
 
-  if (ar1.length % 2) {
-    return ar1[half];
-  } else {
-    return (ar1[half] + ar1[half] + 1) / 2;
-  }
-}
-var calcGrades = (grades) => {
-  let total = 0;
-  for(let i = 0; i < grades.length; i++) {
-      total += grades[i];
-  }
-  let avg = total / grades.length;
-  //console.log(grades);
-  return avg;
-}
 var SetExcel = (data) => {
   var workbook = new Excel.Workbook();
   var sheet = workbook.addWorksheet('My Sheet');
@@ -75,9 +60,11 @@ var status_parsing = true;
 
 io.on('connection', socket => {
   console.log('Пользователь подключился');
+
   socket.on('disconnect', () => {
     console.log('Пользователь отключился');
   });
+
   socket.on('parsing', async (msg) => {
     let command = msg.command;
     if (command == 'begin') {
@@ -104,18 +91,14 @@ io.on('connection', socket => {
       });
 
       let driver = await new Builder().forBrowser('chrome').setChromeOptions(options).build();
-      io.emit('parsing status', 'Начинаем парсить данные');
-      let arrInput = ['//*[@id="header-search"]', '/html/body/div[1]/div/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'];
+      io.emit('parsing status', 'Начинаем парсить данные...');
 
       try {
         await driver.get('https://market.yandex.ru/');
-        
-        let arrContent = {};
 
         let col = 1;
         for (const item of arr) {
           let start = new Date();
-          let dataRow = {};
           try {
             try {
               let inputForm = await driver.findElement(By.xpath('/html/body/div[1]/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
@@ -126,57 +109,19 @@ io.on('connection', socket => {
               await inputForm.clear();
               await inputForm.sendKeys(item+'\n');
             }
-            /* if (col == 1) {
-              await driver.findElement(By.xpath('/html/body/div[1]/div[5]/div[1]/div[2]/div[2]/div/span/label[1]/input')).click();
-              await driver.sleep(2000)
-            } */
+
+            try {
+              const source = await driver.getPageSource();
+              io.emit('transfer code', {status: true, source, item});
+            } catch(e) {
+              console.log(e);
+              io.emit('transfer code', {status: false, item});
+            }
             
-
-            let arrPrice = [];
-            let colProduct = await driver.findElements(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div`));
-            //console.log(`--- ${item} - ${colProduct.length}`);
-            for (let i=1; i < 11; i++) {
-              
-              try {
-                let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[6]/div[1]/div[1]/div/div/a/div`)).getText();
-
-                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[6]/div[1]/div[1]/div/div/a/div
-                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[1]/div[4]/div[1]/div/div/a/div
-                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[2]/div[4]/div[1]/div/div/a/div
-                // /html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[4]/div[4]/div[1]/div/div/a/div
-                let price = String(pre_price).replace(/\s*₽*/g, '');
-                arrPrice.push(Number(price));
-              } catch (e) {
-                try {
-                  let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[5]/div[1]/div[1]/div/div/a/div`)).getText();
-                  let price = String(pre_price).replace(/\s*₽*/g, '');
-                  arrPrice.push(Number(price));
-                } catch(e) {
-                  try {
-                    let pre_price = await driver.findElement(By.xpath(`/html/body/div[1]/div[5]/div[2]/div[1]/div[2]/div/div[1]/div[${i}]/div[4]/div[1]/div/div/a/div`)).getText();
-                    let price = String(pre_price).replace(/\s*₽*/g, '');
-                    arrPrice.push(Number(price));
-                  } catch (e) {
-                    break;
-                  }
-                }
-              }
-            }
-
-            let mdeiana = Number(calcMedian(arrPrice)).toFixed(0);
-            let avg = Number(calcGrades(arrPrice)).toFixed(0);
-
-            arrContent[item] = {
-              Mediana: mdeiana,
-              Avg: avg,
-            }
-
-            dataRow = {Name: item, Mediana: mdeiana, Avg: avg};
 
           } catch(e1) {
             console.log(e1);
-            console.log(item);
-            dataRow = {Name: item, Mediana: 'Ошибка', Avg: 'Ошибка'};
+            io.emit('transfer code', {status: false, item});
           }
 
           
@@ -184,26 +129,38 @@ io.on('connection', socket => {
           let minute = Number((finish-start)/60000*(arr.length-col)).toFixed(2);
           let second = Number((finish-start)/1000*(arr.length-col)).toFixed(2)
           io.emit('parsing status', `Обработано ${col} из ${arr.length}. Осталось, примерно: ${second} сек. или ${minute} мин.`);
-          io.emit('parsing data', dataRow);
           col ++;
 
           if (!status_parsing) {
             break;
           }
         }
-
-        await SetExcel(arrContent);
         
-        //driver.quit();
+        driver.quit();
+
         io.emit('parsing status', 'Парсинг завершен');
       } catch (e) {
         console.log(e);
       }
 
+      await SetExcel(arrContent);
+
     }
   });
-  socket.on('parsing stop', (msg) => {
+
+  socket.on('parsing stop', () => {
     status_parsing = false;
+  });
+
+  socket.on('update excel', data => {
+    let name = data.name;
+    let avg = data.avg;
+    let mediana = data.mediana;
+
+    arrContent[name] = {
+      Mediana: mediana,
+      Avg: avg
+    }
   })
 });
 
