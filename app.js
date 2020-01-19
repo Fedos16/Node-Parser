@@ -99,15 +99,15 @@ io.on('connection', socket => {
         await driver.sleep(2000);
 
         let col = 1;
-        for (const item of arr) {
+        for (let item of arr) {
           let start = new Date();
           try {
             try {
-              let inputForm = await driver.findElement(By.xpath('/html/body/div[1]/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
+              let inputForm = await driver.findElement(By.xpath('/html/body/div[2]/div[2]/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
               await inputForm.clear();
               await inputForm.sendKeys(item+'\n');
             } catch (e) {
-              let inputForm = await driver.findElement(By.xpath('/html/body/div[1]/div/div[1]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
+              let inputForm = await driver.findElement(By.xpath('/html/body/div[2]/div[2]/noindex/div/div/div[2]/div/div[1]/form/span/span[1]/span/span/input[1]'));
               await inputForm.clear();
               await inputForm.sendKeys(item+'\n');
             }
@@ -126,12 +126,21 @@ io.on('connection', socket => {
             io.emit('transfer code', {status: false, item});
           }
 
-          
+          await driver.sleep(1000);
           let finish = new Date();
           let minute = Number((finish-start)/60000*(arr.length-col)).toFixed(2);
           let second = Number((finish-start)/1000*(arr.length-col)).toFixed(2)
           io.emit('parsing status', `Обработано ${col} из ${arr.length}. Осталось, примерно: ${second} сек. или ${minute} мин.`);
           col ++;
+
+          if ((col % 10) == 0) {
+            io.emit('parsing status', 'Делаем 5 секундный перерыв');
+            await driver.sleep(5000);
+          }
+          if ((col % 100) == 0) {
+            io.emit('parsing status', 'Делаем 20 секундный перерыв');
+            await driver.sleep(20000);
+          }
 
           if (!status_parsing) {
             break;
